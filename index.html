@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b35">
+  <meta name="description" content="날짜와 체육관을 선택하고 예약 정보를 확인하는 체육관 예약 데모">
+  <title>체육관 예약</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101b35'/%3E%3Crect x='14' y='16' width='36' height='34' rx='5' fill='none' stroke='%23f4bd4d' stroke-width='4'/%3E%3Cpath d='M14 27h36M23 11v10m18-10v10' stroke='%23f4bd4d' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top"><div class="brand">체육관 예약</div>
+  <main class="shell">
+    <div class="intro"><div><h1>체육관 예약하기</h1>
+      <p>날짜와 체육관을 고른 뒤 예약자 정보를 입력하세요.</p></div></div>
+    <nav class="steps" aria-label="예약 단계"><div class="step active" id="step1"><span>1</span>날짜 선택</div><div class="step" id="step2"><span>2</span>체육관 선택</div><div class="step" id="step3"><span>3</span>예약 확인</div></nav>
+    <div class="grid">
+      <section class="panel" aria-labelledby="booking-title">
+        <h2 id="booking-title">예약 날짜</h2><p class="muted">방문할 날짜를 선택하면 이용 가능한 체육관이 표시됩니다.</p>
+        <div class="section"><label for="date">날짜 선택</label><div class="date-row"><input class="input" type="date" id="date" required></div></div>
+        <div class="section hidden" id="gym-section"><h2>빈 체육관 선택</h2><p class="muted" id="availability-text"></p>
+        <div id="gym-list" class="gym-list"></div></div>
+        <div class="section hidden" id="slot-section"><h2>이용 시간 선택</h2><div id="slots" class="slots"></div></div>
+        <form id="booking-form" class="section hidden" novalidate><h2>예약자 정보 입력</h2>
+          <p class="muted">선택한 일정의 예약자 정보를 입력하세요.</p><div class="form-grid"><div><label for="name">예약자 이름</label><input class="input" id="name" name="name" autocomplete="name" maxlength="40" required></div><div><label for="phone">연락처</label><input class="input" id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="010-1234-5678" required></div></div><div class="error" id="form-error" role="alert"></div><div class="actions"><button class="primary" type="submit">예약 내용 확인</button></div></form>
+        <div id="confirmation" class="confirmation hidden" role="status"><strong>예약 내용을 확인했습니다</strong><p id="confirmation-text"></p><div class="actions"><button class="secondary" id="restart" type="button">다른 날짜 예약하기</button></div></div>
+      </section>
+      <aside class="panel summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">선택한 예약</h2><div class="summary-row"><span>예약 날짜</span>
+          <b id="summary-date">미선택</b></div><div class="summary-row"><span>체육관</span>
+            <b id="summary-gym">미선택</b></div><div class="summary-row">
+              <span>이용 시간</span><b id="summary-slot">미선택</b></div><div class="summary-row">
+                <span>예약자</span><b id="summary-name">미입력</b></div></aside>
+    </div>
+  </main>
+  <script>
+    const gyms=[{id:'central',name:'중앙 체육관',place:'서울 중구 · 실내 코트',slots:['09:00–10:00','11:00–12:00','15:00–16:00']},{id:'riverside',name:'강변 체육관',place:'서울 광진구 · 다목적 홀',slots:['10:00–11:00','14:00–15:00','18:00–19:00']},{id:'west',name:'서부 체육관',place:'서울 마포구 · 실내 코트',slots:['08:00–09:00','13:00–14:00','17:00–18:00']}];
+    const el=id=>document.getElementById(id);let selectedGym=null,selectedSlot=null;
+    const today=new Date();const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);el('date').min=localDate;
+    function available(date){const n=Number(date.replaceAll('-',''));return n%7===0?[]:gyms.filter((_,i)=>(n+i)%5!==0)}
+    function displayDate(s){if(!s)return '미선택';const [y,m,d]=s.split('-');return `${y}.${m}.${d}`}
+    function setStep(n){for(let i=1;i<=3;i++)el('step'+i).className='step '+(i<n?'done':i===n?'active':'')}
+    function updateSummary(){el('summary-date').textContent=displayDate(el('date').value);el('summary-gym').textContent=selectedGym?.name||'미선택';el('summary-slot').textContent=selectedSlot||'미선택';el('summary-name').textContent=el('name').value.trim()||'미입력'}
+    function showGyms(){const date=el('date').value;selectedGym=null;selectedSlot=null;el('gym-section').classList.toggle('hidden',!date);el('slot-section').classList.add('hidden');el('booking-form').classList.add('hidden');el('confirmation').classList.add('hidden');el('form-error').textContent='';setStep(date?2:1);updateSummary();if(!date)return;const list=available(date);el('availability-text').textContent=list.length?`${displayDate(date)}에 이용 가능한 체육관 ${list.length}곳`:`${displayDate(date)}에는 빈 체육관이 없습니다. 다른 날짜를 선택해 주세요.`;el('gym-list').innerHTML='';if(!list.length){const note=document.createElement('div');note.className='notice';note.textContent='빈 체육관이 없습니다';el('gym-list').append(note)}for(const gym of list){const b=document.createElement('button');b.type='button';b.className='gym';b.innerHTML=`<span><strong>${gym.name}</strong><small>${gym.place}</small></span><span class="pill">예약 가능</span>`;b.addEventListener('click',()=>{selectedGym=gym;selectedSlot=null;document.querySelectorAll('.gym').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');el('slot-section').classList.remove('hidden');el('booking-form').classList.add('hidden');el('confirmation').classList.add('hidden');el('slots').innerHTML='';for(const slot of gym.slots){const t=document.createElement('button');t.type='button';t.className='slot';t.textContent=slot;t.addEventListener('click',()=>{selectedSlot=slot;document.querySelectorAll('.slot').forEach(x=>x.classList.remove('selected'));t.classList.add('selected');el('booking-form').classList.remove('hidden');setStep(3);updateSummary()});el('slots').append(t)}updateSummary()});el('gym-list').append(b)}}
+    el('date').addEventListener('change',showGyms);el('name').addEventListener('input',updateSummary);
+    el('booking-form').addEventListener('submit',e=>{e.preventDefault();const name=el('name').value.trim();const phone=el('phone').value.trim();if(!selectedGym||!selectedSlot){el('form-error').textContent='체육관과 이용 시간을 선택하세요.';return}if(!name){el('form-error').textContent='예약자 이름을 입력하세요.';el('name').focus();return}if(!/^\+?[0-9\s-]{9,20}$/.test(phone)){el('form-error').textContent='올바른 연락처를 입력하세요.';el('phone').focus();return}el('form-error').textContent='';updateSummary();el('confirmation-text').textContent=`${displayDate(el('date').value)} · ${selectedGym.name} · ${selectedSlot} · ${name} (${phone})`;el('booking-form').classList.add('hidden');el('confirmation').classList.remove('hidden')});
+    el('restart').addEventListener('click',()=>{el('date').value='';el('name').value='';el('phone').value='';showGyms();el('date').focus()});
+    if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'choose_booking_date',title:'예약 날짜 선택',description:'시연용 체육관 예약 화면에서 날짜를 선택하고 빈 체육관 목록을 표시합니다.',inputSchema:{type:'object',properties:{date:{type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'}},required:['date'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute({date}){if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<localDate||Number.isNaN(new Date(date+'T00:00:00').getTime()))throw Error('오늘 이후의 올바른 날짜를 입력하세요.');el('date').value=date;showGyms();return {date,availableGyms:available(date).map(g=>g.name)}}})).catch(()=>{})}catch{}}
+  </script>
+</body>
+</html>
+
+
+
